@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a97c883eee466944683c6f06be7950ce, type: 3}
+  m_Name: TempChar
+  m_EditorClassIdentifier: 
+  charName: "\uCE90\uB9AD\uD130"
+  maxHp: 1000
+  maxSp: 100
+  moveSpd: 3
+  dashPow: 25
+  dashCool: 3
+  jumpPow: 3
+  guardTime: 1
+  guardCool: 3
+  attackCool: 1
+  ultGauge: 100
+  ultChargeSpd: 5
+  characterPrefab: {fileID: 8121391401733773169, guid: 654c4f17d270a5841beaac67e62d287b, type: 3}

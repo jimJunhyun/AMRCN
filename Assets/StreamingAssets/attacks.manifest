@@ -1,0 +1,41 @@
+ManifestFileVersion: 0
+UnityVersion: 6000.0.36f1
+CRC: 6387811
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 0ded381c3170448aba94c8b46ad3c668
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 6032755d4f37c202246d717d3b285305
+  IncrementalBuildHash:
+    serializedVersion: 2
+    Hash: 00644ee1b6f18dee2c45defa3b96f688
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 4
+  Script: {instanceID: 0}
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 28
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 58
+  Script: {instanceID: 0}
+- Class: 114
+  Script: {fileID: 11500000, guid: 1ae0e926cd977aa4796ee5b92a8c2b3b, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+- Class: 115
+  Script: {instanceID: 0}
+- Class: 212
+  Script: {instanceID: 0}
+- Class: 213
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Assets/Prefabs/Pooled/Bullet.prefab
+Dependencies: []
