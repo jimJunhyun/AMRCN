@@ -27,7 +27,7 @@ public class AttackManager : NetworkBehaviour
 	}
 
 
-	[ServerRpc]
+	[ServerRpc(RequireOwnership = false)]
 	public void AttackSpawnCallServerRpc(FixedString128Bytes atkCode)
 	{
 		Instantiate(atkCodeAtkPair[atkCode.ToString()]).NetworkObject.Spawn(true);

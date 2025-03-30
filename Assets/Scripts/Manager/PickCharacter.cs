@@ -24,7 +24,8 @@ public class PickCharacter : MonoBehaviour
 
     public void Pick(int idx)
     {
-        NetworkObject local = NetworkManager.Singleton.ConnectedClients[NetworkManager.Singleton.LocalClientId].PlayerObject;
+        
+        NetworkObject local = NetworkManager.Singleton.LocalClient.PlayerObject;
         Debug.Log(local.name + " is Player character!");
         local.GetComponent<PlayerControl>().PickCharacter(charList[idx]);
     }

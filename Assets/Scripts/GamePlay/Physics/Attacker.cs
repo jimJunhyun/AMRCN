@@ -22,8 +22,6 @@ public class Attacker : NetworkBehaviour, INetworkSerializable
     void DoMove()
     {
         movePow = transform.right * (moveDist / lifetime);
-
-		GameManager.instance.loggerTemp.text += "MOVEOREOROEROER";
     }
 
 

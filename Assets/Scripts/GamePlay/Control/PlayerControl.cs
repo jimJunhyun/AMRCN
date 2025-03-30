@@ -23,7 +23,7 @@ public class PlayerControl : NetworkBehaviour
 
 	int curJump = 0;
 
-	bool sitFlag = false;
+	NetworkSpineAnimator spineAnimator;
 
 	Foot footPos;
 	PlayerInput input;
@@ -50,14 +50,7 @@ public class PlayerControl : NetworkBehaviour
 			MoveReset();
 		}
 
-		//if(inputDir.y < 0)
-		//{
-		//	Sit();
-		//}
-		//else
-		//{
-		//	Stand();
-		//}
+
     }
 
 	public void OnPressSpace(InputAction.CallbackContext context)
@@ -75,14 +68,27 @@ public class PlayerControl : NetworkBehaviour
 
 	void MoveRight()
 	{
+		if (!avatar)
+			return;
+		
+		spineAnimator.SetAnimState(AnimationAction.Run, CharacterDirection.Right);
+		
 		moveDir.x = 1;
 	}
 	void MoveLeft()
 	{
+		if (!avatar)
+			return;
+		spineAnimator.SetAnimState(AnimationAction.Run, CharacterDirection.Left);
+		
 		moveDir.x = -1;
 	}
 	void MoveReset()
 	{
+		if (!avatar)
+			return;
+		spineAnimator.SetAnimState(AnimationAction.Idle);
+		
 		moveDir.x = 0;
 	}
 
@@ -102,11 +108,6 @@ public class PlayerControl : NetworkBehaviour
 		}
 		return false;
 	}
-	void Look(Vector2 mPos)
-	{
-		//??
-	}
-
 
 	void Gravitate()
 	{
@@ -122,21 +123,7 @@ public class PlayerControl : NetworkBehaviour
 		}
 	}
 
-	//void Sit() //아래키누를때앉느냐아니면메이플마냥플랫폼아래로내려가느냐아니면뭐냐
-	//{
-	//	if (!sitFlag)
-	//	{
-	//		sitFlag = true;
-	//	}
-	//}
 
-	//void Stand() //아래키누를때앉느냐아니면메이플마냥플랫폼아래로내려가느냐아니면뭐냐
-	//{
-	//	if (sitFlag)
-	//	{
-	//		sitFlag = false;
-	//	}
-	//}
 
 	void Interact() //아마상호작용도있겠지
 	{
@@ -144,22 +131,12 @@ public class PlayerControl : NetworkBehaviour
 	}
 
 
-	//스킬1사용시
-	//스킬2사용시
-	//등등
-
 	internal void PickCharacter(BaseCharacter actor)
 	{
 		picked = actor;
 		moveSpd = picked.moveSpd;
 		jumpPow = picked.jumpPow;
-		
-		//if(avatar == null)
-		//{
-		//	avatar = Instantiate(GameManager.instance.picker.GetCharacterPrefab(actor.charName)).GetComponent<NetworkObject>();
-		//	avatar.transform.SetParent(transform);
-		//	avatar.transform.localPosition = Vector3.zero;
-		//}
+
 		SpawnCharacterServerRpc(picked);
 	}
 
@@ -167,16 +144,34 @@ public class PlayerControl : NetworkBehaviour
 	[ServerRpc]
 	internal void SpawnCharacterServerRpc(BaseCharacter actor)
 	{
-		//GameManager.instance.loggerTemp.text += "SPChar\n";
-
 		picked = actor;
+		moveSpd = picked.moveSpd;
+		jumpPow = picked.jumpPow;
+
 		avatar = Instantiate(GameManager.instance.picker.GetCharacterPrefab(actor.charName)).GetComponent<NetworkObject>();
 		avatar.transform.position = transform.position;
 		avatar.Spawn(true);
 		avatar.transform.SetParent(transform);
-		//AdjustCharacterClientRpc(actor);
+
+		spineAnimator = avatar.GetComponent<NetworkSpineAnimator>();
+		spineAnimator.InitAnim();
+
+		SetAvatarClientRpc();
+
+		//GameManager.instance.loggerTemp.text += "SPAWNED & CLIENTRPC CALLED";
 	}
 
+
+	[ClientRpc]
+	internal void SetAvatarClientRpc()
+	{
+		//GameManager.instance.loggerTemp.text += "CLIENTRPC RECEIVED";
+
+		avatar = GetComponentInChildren<NetworkSpineAnimator>().GetComponent<NetworkObject>();
+		spineAnimator = avatar.GetComponent<NetworkSpineAnimator>();
+
+		spineAnimator.InitAnim();
+	}
 
 
 
@@ -185,6 +180,7 @@ public class PlayerControl : NetworkBehaviour
 	{
 		base.OnNetworkSpawn();
 		footPos = GetComponentInChildren<Foot>();
+
         if (!IsOwner)
         {
 			input = GetComponent<PlayerInput>();
@@ -206,16 +202,16 @@ public class PlayerControl : NetworkBehaviour
 		{
 			jumpCool -= Time.deltaTime;
 		}
-        if (avatar)
-        {
-			Debug.Log(avatar.transform.localPosition);
-        }
+   //     if (avatar)
+   //     {
+			//Debug.Log(avatar.transform.localPosition);
+   //     }
 	}
 
 	private void FixedUpdate()
 	{
-		if (!IsOwner)
-			return;
+		//if (!IsOwner)
+		//	return;
 
 		footPos.CalcGrounded();
 

@@ -13,7 +13,7 @@ public class BaseRangedAtk : BaseAtk
     {
         base.DoAttack();
 
-        GameManager.instance.loggerTemp.text = $"{relatedAtk == null}";
+        //GameManager.instance.loggerTemp.text = $"{relatedAtk == null}";
 
 
 
