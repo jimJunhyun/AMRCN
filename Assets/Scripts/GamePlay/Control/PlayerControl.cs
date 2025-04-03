@@ -1,9 +1,10 @@
 using System.ComponentModel;
 using Unity.Netcode;
+using Unity.XR.GoogleVr;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerControl : NetworkBehaviour
+public class PlayerControl : BaseControlModule
 {
 	//보통캐릭터별로같을거
     public float jumpDel = 1;
@@ -11,33 +12,66 @@ public class PlayerControl : NetworkBehaviour
 
 	public int jumpCount = 2;
 
+	public float dashTime;
+
+	internal CharacterDirection direction;
+
 
 	float moveSpd;
 	float jumpPow;
+
+	float dashPow;
+	float dashCool;
+
 
 	Vector2 moveDir = Vector2.zero;
 	Vector2 powerDir = Vector2.zero;
 	Vector2 inputDir = Vector2.zero;
 
+	Vector2 dashDir = Vector2.zero;
+
 	float jumpCool = 0;
+	float curDashCool = 0;
+
+	float curDashTime = 0;
 
 	int curJump = 0;
 
-	NetworkSpineAnimator spineAnimator;
+	bool dashing = false;
+
 
 	Foot footPos;
 	PlayerInput input;
 
-	BaseCharacter picked;
-
-	NetworkObject avatar;
 
 	public void OnMove(InputAction.CallbackContext context)
 	{
 		//GameManager.instance.logger.text += "Move : " + OwnerClientId + '\n';
 
 		inputDir = context.ReadValue<Vector2>();
-        if(inputDir.x > GameManager.MOVETHRESHOLD)
+
+        SwitchMoveDir();
+    }
+
+	public void OnPressJump(InputAction.CallbackContext context)
+	{
+		if (context.performed)
+		{
+			Jump();
+		}
+	}
+
+	public void OnPressDash(InputAction.CallbackContext context)
+	{
+		if (context.performed)
+		{
+			Dash();
+		}
+	}
+
+	void SwitchMoveDir()
+	{
+		if (inputDir.x > GameManager.MOVETHRESHOLD)
 		{
 			MoveRight();
 		}
@@ -49,51 +83,52 @@ public class PlayerControl : NetworkBehaviour
 		{
 			MoveReset();
 		}
-
-
-    }
-
-	public void OnPressSpace(InputAction.CallbackContext context)
-	{
-		if (context.performed)
-		{
-			Jump();
-		}
-	}
-
-	public void OnMouseDelta(InputAction.CallbackContext context)
-	{
-
 	}
 
 	void MoveRight()
 	{
-		if (!avatar)
+		if (!functioning)
 			return;
-		
-		spineAnimator.SetAnimState(AnimationAction.Run, CharacterDirection.Right);
+
+		if (!dashing)
+		{
+			direction = CharacterDirection.Right;
+			
+			act.anim.SetAnimState(AnimationAction.Run, direction);
+		}
 		
 		moveDir.x = 1;
 	}
 	void MoveLeft()
 	{
-		if (!avatar)
+		if (!functioning)
 			return;
-		spineAnimator.SetAnimState(AnimationAction.Run, CharacterDirection.Left);
-		
+
+		if (!dashing)
+		{
+			direction = CharacterDirection.Left;
+
+			act.anim.SetAnimState(AnimationAction.Run, direction);
+		}
 		moveDir.x = -1;
 	}
 	void MoveReset()
 	{
-		if (!avatar)
+		if (!functioning)
 			return;
-		spineAnimator.SetAnimState(AnimationAction.Idle);
-		
+
+		if (!dashing)
+		{
+			act.anim.SetAnimState(AnimationAction.Idle);
+		}
 		moveDir.x = 0;
 	}
 
 	bool Jump()
 	{
+		if(!functioning || dashing)
+			return false;
+
 		if(curJump < jumpCount)
 		{
 			if(jumpCool <= 0)
@@ -109,21 +144,54 @@ public class PlayerControl : NetworkBehaviour
 		return false;
 	}
 
+	void Dash()
+	{
+		if(!functioning)
+			return;
+
+		if(curDashCool <= 0)
+		{
+			curDashCool = dashCool;
+			curDashTime = dashTime;
+			if(direction == CharacterDirection.Right)
+				dashDir.x += dashPow;
+			else
+				dashDir.x -= dashPow;
+			dashing = true;
+		}
+	}
+
+	void DashStop()
+	{
+		dashing = false;
+		if (direction == CharacterDirection.Right)
+			dashDir.x -= dashPow;
+		else
+			dashDir.x += dashPow;
+		curDashTime = 0;
+
+		SwitchMoveDir();
+	}
+
 	void Gravitate()
 	{
-		if(!footPos.isGrounded)
-		{
-			powerDir.y -= GameManager.GRAVITY * Time.fixedDeltaTime;
-		}
-		else if (footPos.isGrounded && powerDir.y <= 0)
+		
+		if (powerDir.y < 0 && footPos.isGrounded)
 		{
 			powerDir.y = 0;
 			curJump = 0;
 			jumpCool = 0;
+
+			transform.position = footPos.sampledHit.point + Vector2.up;
+			
+		}
+		else
+		{
+			powerDir.y -= GameManager.GRAVITY * Time.fixedDeltaTime;
 		}
 	}
 
-
+	
 
 	void Interact() //아마상호작용도있겠지
 	{
@@ -131,49 +199,34 @@ public class PlayerControl : NetworkBehaviour
 	}
 
 
-	internal void PickCharacter(BaseCharacter actor)
+	public override void OnPickedCharacterChange(BaseCharacter newPicked)
 	{
-		picked = actor;
-		moveSpd = picked.moveSpd;
-		jumpPow = picked.jumpPow;
+		base.OnPickedCharacterChange(newPicked);
 
-		SpawnCharacterServerRpc(picked);
+		moveSpd = newPicked.moveSpd;
+		jumpPow = newPicked.jumpPow;
+		dashPow = newPicked.dashPow;
 	}
 
-
-	[ServerRpc]
-	internal void SpawnCharacterServerRpc(BaseCharacter actor)
+	internal override void RefreshResource()
 	{
-		picked = actor;
-		moveSpd = picked.moveSpd;
-		jumpPow = picked.jumpPow;
+		base.RefreshResource();
 
-		avatar = Instantiate(GameManager.instance.picker.GetCharacterPrefab(actor.charName)).GetComponent<NetworkObject>();
-		avatar.transform.position = transform.position;
-		avatar.Spawn(true);
-		avatar.transform.SetParent(transform);
+		moveDir = Vector2.zero;
+		powerDir = Vector2.zero;
+		inputDir = Vector2.zero;
 
-		spineAnimator = avatar.GetComponent<NetworkSpineAnimator>();
-		spineAnimator.InitAnim();
+		dashDir = Vector2.zero;
 
-		SetAvatarClientRpc();
+		jumpCool = 0;
+		curDashCool = 0;
 
-		//GameManager.instance.loggerTemp.text += "SPAWNED & CLIENTRPC CALLED";
+		curDashTime = 0;
+
+		curJump = 0;
+
+		dashing = false;
 	}
-
-
-	[ClientRpc]
-	internal void SetAvatarClientRpc()
-	{
-		//GameManager.instance.loggerTemp.text += "CLIENTRPC RECEIVED";
-
-		avatar = GetComponentInChildren<NetworkSpineAnimator>().GetComponent<NetworkObject>();
-		spineAnimator = avatar.GetComponent<NetworkSpineAnimator>();
-
-		spineAnimator.InitAnim();
-	}
-
-
 
 
 	public override void OnNetworkSpawn()
@@ -202,11 +255,23 @@ public class PlayerControl : NetworkBehaviour
 		{
 			jumpCool -= Time.deltaTime;
 		}
-   //     if (avatar)
-   //     {
-			//Debug.Log(avatar.transform.localPosition);
-   //     }
-	}
+		if(!dashing && curDashCool > 0)
+		{
+			curDashCool -= Time.deltaTime;
+		}
+		if (dashing)
+        {
+            curDashTime -= Time.deltaTime;
+			if(curDashTime <= 0)
+			{
+				DashStop();
+			}
+        }
+        //     if (avatar)
+        //     {
+        //Debug.Log(avatar.transform.localPosition);
+        //     }
+    }
 
 	private void FixedUpdate()
 	{
@@ -216,7 +281,11 @@ public class PlayerControl : NetworkBehaviour
 		footPos.CalcGrounded();
 
 		Gravitate();
-			
-		transform.position += (Vector3)((moveDir * moveSpd) + powerDir) * Time.fixedDeltaTime;
+
+		//GameManager.instance.loggerTemp.text = ((Vector3)((moveDir * moveSpd) + powerDir) * Time.fixedDeltaTime).ToString();
+		if (dashing)
+			transform.position += (Vector3)(dashDir) * Time.fixedDeltaTime;
+		else
+			transform.position += (Vector3)((moveDir * moveSpd) + powerDir) * Time.fixedDeltaTime;
 	}
 }

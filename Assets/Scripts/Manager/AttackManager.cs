@@ -8,6 +8,7 @@ public class AttackManager : NetworkBehaviour
 {
 	internal Dictionary<string, Attacker> atkCodeAtkPair;
 
+	Dictionary<int, Attacker> allAtks = new Dictionary<int, Attacker>();
 
 	public void LoadAttacks()
 	{
@@ -28,16 +29,20 @@ public class AttackManager : NetworkBehaviour
 
 
 	[ServerRpc(RequireOwnership = false)]
-	public void AttackSpawnCallServerRpc(FixedString128Bytes atkCode)
+	public void AttackSpawnCallServerRpc(FixedString128Bytes atkCode, ulong callerClientId, int attackSocketIdx)
 	{
-		Instantiate(atkCodeAtkPair[atkCode.ToString()]).NetworkObject.Spawn(true);
+		Attacker atk = Instantiate(atkCodeAtkPair[atkCode.ToString()]);
+		atk.SetInfo(atk.OwnerClientId, attackSocketIdx);
+		atk.NetworkObject.Spawn(true);
+
+		allAtks.Add(atk.gameObject.GetInstanceID(), atk);
 	}
 
-	//[Rpc(SendTo.Server)]
-	//public void AttackDespawnCallServerRpc(string atkCode)
-	//{
-	//	targ.NetworkObject.Despawn(true);
-	//	GameManager.instance.loggerTemp.text += "DEEESSTTRRROOOYY\n";
-	//}
+	[ServerRpc(RequireOwnership = false)]
+	public void AttackDespawnCallServerRpc(int targetInstanceId)
+	{
+		allAtks[targetInstanceId].NetworkObject.Despawn(true);
+		allAtks.Remove(targetInstanceId);
+	}
 
 }

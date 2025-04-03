@@ -8,7 +8,9 @@ public class BaseAtk : ScriptableObject
 
 	public float coolDown;
 
-	public virtual void DoAttack()
+	public int atkSocketIdx;
+
+	public virtual void DoAttack(ulong callerId)
 	{
 		//???
 	}

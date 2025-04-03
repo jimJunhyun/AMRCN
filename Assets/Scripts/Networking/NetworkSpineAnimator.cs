@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public enum CharacterDirection
 {
@@ -106,6 +107,7 @@ public class NetworkSpineAnimator : NetworkBehaviour
 			case AnimationAction.Idle:
 				if (direction == CharacterDirection.Left)
 				{
+					
 					skAnim.AnimationState.SetAnimation(0, IDLEL, true);
 				}
 				else
@@ -196,5 +198,7 @@ public class NetworkSpineAnimator : NetworkBehaviour
 			default:
 				break;
 		}
+
+		//GameManager.instance.loggerTemp.text += "Action : " + action.ToString() + '\n';
 	}
 }

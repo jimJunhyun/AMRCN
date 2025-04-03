@@ -1,4 +1,5 @@
 
+using Spine.Unity;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -23,12 +24,21 @@ public class SkillSlot
 
 	public bool Use()
 	{
+		bool res = Usable;
 		if (Usable)
 		{
-			boundSkill.DoAttack();
+			boundSkill.DoAttack(NetworkManager.Singleton.LocalClientId);
 			passedCool = 0;
 		}
-		return Usable;
+		return res;
+	}
+
+	internal void ResetCool()
+	{
+		if(boundSkill != null)
+		{
+			passedCool = boundSkill.coolDown;
+		}
 	}
 
     internal bool Usable
@@ -45,7 +55,7 @@ public class SkillSlot
 }
 
 
-public class AttackControl : NetworkBehaviour
+public class AttackControl : BaseControlModule
 {
 	public BaseAtk normAtk;
 	public BaseAtk skill1;
@@ -64,8 +74,11 @@ public class AttackControl : NetworkBehaviour
     internal SkillSlot slot3;
     internal SkillSlot slot4;
 
-	//일단최대치가4개인게반확정이고 스킬이2개에다 궁1개 비슷한 경우도 있을수있기때문에따로하는게차라리더나을덧,,
+	//최대 4개인게 반확정이고 스킬2개궁1개 같은 경우도 있을수있기때문에 따로하는게 차라리 더 나을 것이라생각.
 
+	internal List<BoneFollower> atkPoses;
+
+	internal IntegerModifier attackDamageMod;
 
 	private void Awake()
 	{
@@ -74,47 +87,92 @@ public class AttackControl : NetworkBehaviour
 		slot2 = new SkillSlot(skill2);
 		slot3 = new SkillSlot(skill3);
 		slot4 = new SkillSlot(skill4);
-
 	}
 
 	public void OnPressNormalAtk(InputAction.CallbackContext context) //LClick
 	{
+		if(!functioning)
+			return;
 		if (context.performed)
 		{
-			normalSlot?.Use();
+
+			if (normalSlot != null && normalSlot.Use())
+			{
+				act.anim.SetAnimState(AnimationAction.Attack);
+			}
 		}
 	}
 
 
 	public void OnPressSkill1(InputAction.CallbackContext context) //U
 	{
+		if (!functioning)
+			return;
 		if (context.performed)
 		{
-			slot1?.Use();
+			if (slot1 != null && slot1.Use())
+			{
+				act.anim.SetAnimState(AnimationAction.Skill1);
+			}
 		}
 	}
 
 	public void OnPressSkill2(InputAction.CallbackContext context)//I
 	{
+		if (!functioning)
+			return;
 		if (context.performed)
 		{
-			slot2?.Use();
+			if (slot2 != null && slot2.Use())
+			{
+				act.anim.SetAnimState(AnimationAction.Skill2);
+			}
 		}
 	}
 
 	public void OnPressSkill3(InputAction.CallbackContext context)//O
 	{
+		if (!functioning)
+			return;
 		if (context.performed)
 		{
-			slot3?.Use();
+			if (slot3 != null && slot3.Use())
+			{
+				act.anim.SetAnimState(AnimationAction.Skill3);
+			}
 		}
 	}
 	public void OnPressSkill4(InputAction.CallbackContext context)//P
 	{
+		if (!functioning)
+			return;
 		if (context.performed)
 		{
-			slot4?.Use();
+			if (slot4 != null && slot4.Use())
+			{
+				act.anim.SetAnimState(AnimationAction.Skill4);
+			}
 		}
+	}
+
+
+	public override void OnPickedCharacterChange(BaseCharacter newPicked)
+	{
+		atkPoses = new List<BoneFollower>(GetComponentsInChildren<BoneFollower>());
+
+
+		//캐릭터스킬교체시켜주기.
+	}
+
+	internal override void RefreshResource()
+	{
+		base.RefreshResource();
+
+		normalSlot.ResetCool();
+		slot1.ResetCool();
+		slot2.ResetCool();
+		slot3.ResetCool();
+		slot4.ResetCool();
 	}
 
 

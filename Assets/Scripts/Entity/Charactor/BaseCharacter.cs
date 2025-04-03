@@ -15,7 +15,8 @@ public class BaseCharacter : ScriptableObject, INetworkSerializable
     
     public float dashPow;
     public float dashCool;
-    
+
+
     public float jumpPow;
     
     public float guardTime;
