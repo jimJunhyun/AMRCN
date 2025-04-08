@@ -4,7 +4,7 @@ using UnityEngine;
 
 
 [CreateAssetMenu]
-public class BaseRangedAtk : BaseAtk
+public class BaseSpawnAtk : BaseAtk
 {
 
 

@@ -23,8 +23,16 @@ public class PlayerActControl : NetworkBehaviour
 	private void Awake()
 	{
 		atk = GetComponent<AttackControl>();
+		if(atk == null )
+			atk = gameObject.AddComponent<AttackControl>();
+
 		ctrl = GetComponent<PlayerControl>();
+		if (ctrl == null )
+			ctrl = gameObject.AddComponent <PlayerControl>();
+
 		health = GetComponent<HealthControl>();
+		if(health == null)
+			health = gameObject.AddComponent<HealthControl>() ;
 
 		modules = new List<BaseControlModule>();
 		modules.Add(ctrl);

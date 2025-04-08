@@ -7,6 +7,7 @@ public class GameManager : NetworkBehaviour
 
     public static GameManager instance;
 
+    public const int TARGETFRAMERATE =  60;
 
     public const float GRAVITY = 15f;
     public const float GROUNDTHRESHOLD = 0.1f;
@@ -16,6 +17,7 @@ public class GameManager : NetworkBehaviour
 
     public const float SAMPLEPOINTDISTANCE = 1f; //발판 하나 두께 < 값 < 발판 사이 거리
 
+    
     public const int GROUNDLAYER =  8;
     public const int PLAYERLAYER =  9;
     public const int ATTACKLAYER =  10;
@@ -28,6 +30,9 @@ public class GameManager : NetworkBehaviour
 	private void Awake()
 	{
 		instance = this;
+
+        Application.targetFrameRate = TARGETFRAMERATE;
+
 
         picker = GetComponentInChildren<PickCharacter>();
         attackManager = GetComponentInChildren<AttackManager>();

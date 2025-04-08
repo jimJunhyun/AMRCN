@@ -13,6 +13,8 @@ public class HealthControl : BaseControlModule, IDamagable
 
 	bool immune = false;
 
+	int immuneFrame = 0;
+
 	public override void OnPickedCharacterChange(BaseCharacter newPicked)
 	{
 		base.OnPickedCharacterChange(newPicked);
@@ -32,9 +34,10 @@ public class HealthControl : BaseControlModule, IDamagable
 		curSp = maxSp;
 	}
 
-	public void SetImmune() //새로고침 방식 || 연장 방식
+	public void SetImmune(int frame) //새로고침 방식 || 연장 방식
 	{
-		//immune = true;
+		immune = true;
+		immuneFrame += frame;
 	}
 
 	public void Heal(int amt, bool overHeal = false)
@@ -52,7 +55,10 @@ public class HealthControl : BaseControlModule, IDamagable
 
 	public void TakeDamage(int amt)
 	{
-		if(amt > 0)
+        if(immune)
+			return;
+
+        if (amt > 0)
 		{
 			curHp -= amt;
 
@@ -67,6 +73,17 @@ public class HealthControl : BaseControlModule, IDamagable
 	{
 		Debug.Log("죽었소.");
 		act.DisableEverything();
+	}
+
+	private void Update()
+	{
+		if(immune && immuneFrame > 0)
+		{
+			immuneFrame -= 1;
+		}
+
+		if(immuneFrame < 0)
+			immune = false;
 	}
 
 }

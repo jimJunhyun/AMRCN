@@ -158,6 +158,8 @@ public class PlayerControl : BaseControlModule
 			else
 				dashDir.x -= dashPow;
 			dashing = true;
+
+			act.health.SetImmune(15);
 		}
 	}
 
@@ -175,14 +177,16 @@ public class PlayerControl : BaseControlModule
 
 	void Gravitate()
 	{
-		
-		if (powerDir.y < 0 && footPos.isGrounded)
+		if(dashing)
+			return;
+
+		if (powerDir.y <= 0 && footPos.isGrounded)
 		{
 			powerDir.y = 0;
 			curJump = 0;
 			jumpCool = 0;
 
-			transform.position = footPos.sampledHit.point + Vector2.up;
+			//transform.position = footPos.sampledHit.point + Vector2.up;
 			
 		}
 		else
@@ -234,11 +238,11 @@ public class PlayerControl : BaseControlModule
 		base.OnNetworkSpawn();
 		footPos = GetComponentInChildren<Foot>();
 
-        if (!IsOwner)
-        {
+		if (!IsOwner)
+		{
 			input = GetComponent<PlayerInput>();
 			input.enabled = false;
-        }
+		}
 	}
 
 	private void OnEnable()
@@ -273,16 +277,27 @@ public class PlayerControl : BaseControlModule
         //     }
     }
 
+
+	//내가볼때
+	//로컬에서 위치가 바뀌긴 하는데
+	//서버에 위치를 받아오는게 먼저라서
+	//계속덮어씌워짐된다는생각
+	//이게맞는듯...
+
+	//movedir을 포함한 이것들을 수정하는부분을전부서버로넘겨야할거같다
+	//그래야거기서위치를갱신해주지
+
 	private void FixedUpdate()
 	{
-		//if (!IsOwner)
-		//	return;
+		if (!IsOwner)
+			return;
 
 		footPos.CalcGrounded();
 
 		Gravitate();
 
-		//GameManager.instance.loggerTemp.text = ((Vector3)((moveDir * moveSpd) + powerDir) * Time.fixedDeltaTime).ToString();
+		GameManager.instance.loggerTemp.text = $"(({moveDir} * {moveSpd}) + {powerDir}) * {Time.fixedDeltaTime} = {((Vector3)((moveDir * moveSpd) + powerDir) * Time.fixedDeltaTime).ToString()}";
+
 		if (dashing)
 			transform.position += (Vector3)(dashDir) * Time.fixedDeltaTime;
 		else
