@@ -68,6 +68,7 @@ public class NetworkSpineAnimator : NetworkBehaviour
 	}
 
 
+	//RPC없이애니매이션재생하는대신, 애니매이션부르는곳에서 동기화가 필요해짐.
 	public void SetAnimState(AnimationAction act, CharacterDirection dir = CharacterDirection.None)
 	{
 		action = act;
@@ -75,6 +76,8 @@ public class NetworkSpineAnimator : NetworkBehaviour
 		{
 			direction = dir;
 		}
+
+		SwitchAnimations();
 
 		PlayAnimServerRpc(action, direction);
 	}

@@ -30,6 +30,8 @@ public class PlayerControl : BaseControlModule
 
 	Vector2 dashDir = Vector2.zero;
 
+	Vector2 prevPower = Vector2.zero;
+
 	float jumpCool = 0;
 	float curDashCool = 0;
 
@@ -57,7 +59,17 @@ public class PlayerControl : BaseControlModule
 	{
 		if (context.performed)
 		{
-			Jump();
+
+			if (!functioning || dashing)
+				return;
+
+			if (curJump < jumpCount)
+			{
+				if (jumpCool <= 0)
+				{
+					JumpServerRpc();
+				}
+			}
 		}
 	}
 
@@ -65,12 +77,64 @@ public class PlayerControl : BaseControlModule
 	{
 		if (context.performed)
 		{
-			Dash();
+			if (!functioning)
+				return;
+
+			if (curDashCool <= 0)
+			{
+				DashServerRpc();
+
+			}
 		}
 	}
 
-	void SwitchMoveDir()
+	internal void SwitchMoveDir() //얘도 RPC로 해야할까?
 	{
+		if (!functioning)
+			return;
+
+		MoveServerRpc(inputDir);
+	}
+
+	void MoveRight()
+	{
+		if (!dashing)
+		{
+			direction = CharacterDirection.Right;
+
+			act.anim.SetAnimState(AnimationAction.Run, direction);
+		}
+
+		moveDir = Vector2.right;
+	}
+	void MoveLeft()
+	{
+
+		if (!dashing)
+		{
+			direction = CharacterDirection.Left;
+
+			act.anim.SetAnimState(AnimationAction.Run, direction);
+		}
+
+		moveDir = Vector2.left;
+	}
+	void MoveReset()
+	{
+		if (!dashing)
+		{
+			act.anim.SetAnimState(AnimationAction.Idle);
+		}
+
+		moveDir = Vector2.zero;
+
+	}
+
+
+	[ServerRpc]
+	void MoveServerRpc(Vector2 input)
+	{
+		inputDir = input;
 		if (inputDir.x > GameManager.MOVETHRESHOLD)
 		{
 			MoveRight();
@@ -83,101 +147,164 @@ public class PlayerControl : BaseControlModule
 		{
 			MoveReset();
 		}
+
+		RefreshValuesOnClient();
 	}
 
-	void MoveRight()
+	//[ClientRpc]
+	//void MoveClientRpc(Vector2 input)
+	//{
+	//	if (inputDir.x > GameManager.MOVETHRESHOLD)
+	//	{
+	//		MoveRight();
+	//	}
+	//	else if (inputDir.x < -GameManager.MOVETHRESHOLD)
+	//	{
+	//		MoveLeft();
+	//	}
+	//	else
+	//	{
+	//		MoveReset();
+	//	}
+	//}
+
+	[ServerRpc]
+	void JumpServerRpc()
 	{
-		if (!functioning)
-			return;
+		jumpCool = jumpDel;
+		curJump += 1;
 
-		if (!dashing)
-		{
-			direction = CharacterDirection.Right;
-			
-			act.anim.SetAnimState(AnimationAction.Run, direction);
-		}
-		
-		moveDir.x = 1;
-	}
-	void MoveLeft()
-	{
-		if (!functioning)
-			return;
+		powerDir.y = jumpPow;
 
-		if (!dashing)
-		{
-			direction = CharacterDirection.Left;
-
-			act.anim.SetAnimState(AnimationAction.Run, direction);
-		}
-		moveDir.x = -1;
-	}
-	void MoveReset()
-	{
-		if (!functioning)
-			return;
-
-		if (!dashing)
-		{
-			act.anim.SetAnimState(AnimationAction.Idle);
-		}
-		moveDir.x = 0;
+		RefreshValuesOnClient();
 	}
 
-	bool Jump()
+	//[ClientRpc]
+	//void JumpClientRpc()
+	//{
+	//	jumpCool = jumpDel;
+	//	curJump += 1;
+
+	//	powerDir.y = jumpPow;
+	//}
+
+	[ServerRpc]
+	void DashServerRpc()
 	{
-		if(!functioning || dashing)
-			return false;
 
-		if(curJump < jumpCount)
-		{
-			if(jumpCool <= 0)
-			{
-				jumpCool = jumpDel;
-				curJump += 1;
+		curDashCool = dashCool;
+		curDashTime = dashTime;
 
 
-				powerDir.y = jumpPow;
-				return true;
-			}
-		}
-		return false;
+		if (direction == CharacterDirection.Right)
+			dashDir.x += dashPow;
+		else
+			dashDir.x -= dashPow;
+		dashing = true;
+
+		act.health.SetImmune(15);
 	}
 
-	void Dash()
+	//[ClientRpc]
+	//void DashClientRpc()
+	//{
+	//	curDashCool = dashCool;
+	//	curDashTime = dashTime;
+
+
+	//	if (direction == CharacterDirection.Right)
+	//		dashDir.x += dashPow;
+	//	else
+	//		dashDir.x -= dashPow;
+	//	dashing = true;
+	//}
+
+	[ServerRpc]
+	void DashStopServerRpc()
 	{
-		if(!functioning)
-			return;
+		curDashTime = 0;
 
-		if(curDashCool <= 0)
-		{
-			curDashCool = dashCool;
-			curDashTime = dashTime;
-			if(direction == CharacterDirection.Right)
-				dashDir.x += dashPow;
-			else
-				dashDir.x -= dashPow;
-			dashing = true;
-
-			act.health.SetImmune(15);
-		}
-	}
-
-	void DashStop()
-	{
 		dashing = false;
 		if (direction == CharacterDirection.Right)
 			dashDir.x -= dashPow;
 		else
 			dashDir.x += dashPow;
-		curDashTime = 0;
 
 		SwitchMoveDir();
+
+		RefreshValuesOnClient();
 	}
+
+	//[ClientRpc]
+	//void DashStopClientRpc()
+	//{
+	//	curDashTime = 0;
+
+	//	dashing = false;
+	//	if (direction == CharacterDirection.Right)
+	//		dashDir.x -= dashPow;
+	//	else
+	//		dashDir.x += dashPow;
+
+	//	SwitchMoveDir();
+	//}
+
+	[ServerRpc]
+	void AdjustMoveServerRpc(Vector2 move)
+	{
+		moveDir = move;
+		RefreshValuesOnClient();
+	}
+
+	[ServerRpc]
+	void HardSetPowerServerRpc(Vector2 pow)
+	{
+		powerDir = pow;
+		RefreshValuesOnClient();
+	}
+
+	[ServerRpc]
+	void SoftSetPowerServerRpc(Vector2 pow)
+	{
+		if(pow.x != 0)
+			powerDir.x = pow.x;
+		if (pow.y != 0)
+			powerDir.y = pow.y;
+		RefreshValuesOnClient();
+	}
+
+	[ServerRpc]
+	void AddPowerServerRpc(Vector2 pow)
+	{
+		powerDir += pow;
+		RefreshValuesOnClient();
+	}
+
+
+	void RefreshValuesOnClient()
+	{
+		RefreshValuesClientRpc(inputDir, moveDir, powerDir, curJump, jumpCool, dashing, dashDir, curDashTime, curDashCool, direction);
+	}
+
+	[ClientRpc]
+	void RefreshValuesClientRpc(Vector2 input, Vector2 move, Vector2 pow, int cJump, float jCool, bool dash, Vector2 dDir, float cDashTime, float cDashCool, CharacterDirection dir)
+	{
+		inputDir = input;
+		moveDir = move;
+		powerDir = pow;
+		curJump = cJump;
+		jumpCool = jCool;
+		dashing = dash;
+		dashDir = dDir;
+		curDashTime = cDashTime;
+		curDashCool = cDashCool;
+		direction = dir;
+	}
+
 
 	void Gravitate()
 	{
-		if(dashing)
+		if (dashing)
 			return;
 
 		if (powerDir.y <= 0 && footPos.isGrounded)
@@ -186,20 +313,15 @@ public class PlayerControl : BaseControlModule
 			curJump = 0;
 			jumpCool = 0;
 
-			//transform.position = footPos.sampledHit.point + Vector2.up;
-			
+			transform.position = footPos.sampledHit.point + Vector2.up;
+
 		}
 		else
 		{
 			powerDir.y -= GameManager.GRAVITY * Time.fixedDeltaTime;
 		}
-	}
 
-	
-
-	void Interact() //아마상호작용도있겠지
-	{
-
+		RefreshValuesOnClient(); //동작은 할거임, 근데 비효율적. 아마도 옵저버 비슷한 느낌으로 바꾸거나, 상태 변화가 감지되었을때만 이걸 해주는 식으로 바꿀 듯 싶다.
 	}
 
 
@@ -252,23 +374,33 @@ public class PlayerControl : BaseControlModule
 
 	void Update()
     {
-		if (!IsOwner)
+		if (!IsServer)
 			return;
 
 		if (jumpCool > 0)
 		{
 			jumpCool -= Time.deltaTime;
+			if(jumpCool <= 0)
+			{
+				jumpCool = 0;
+				RefreshValuesOnClient();
+			}
 		}
 		if(!dashing && curDashCool > 0)
 		{
 			curDashCool -= Time.deltaTime;
+			if (curDashCool <= 0)
+			{
+				curDashCool = 0;
+				RefreshValuesOnClient();
+			}
 		}
 		if (dashing)
         {
             curDashTime -= Time.deltaTime;
 			if(curDashTime <= 0)
 			{
-				DashStop();
+				DashStopServerRpc();
 			}
         }
         //     if (avatar)
@@ -278,29 +410,28 @@ public class PlayerControl : BaseControlModule
     }
 
 
-	//내가볼때
 	//로컬에서 위치가 바뀌긴 하는데
 	//서버에 위치를 받아오는게 먼저라서
-	//계속덮어씌워짐된다는생각
-	//이게맞는듯...
+	//계속덮어씌워짐된다는추측 (확인함)
 
-	//movedir을 포함한 이것들을 수정하는부분을전부서버로넘겨야할거같다
-	//그래야거기서위치를갱신해주지
 
 	private void FixedUpdate()
 	{
-		if (!IsOwner)
+		if (!IsServer)
 			return;
+
 
 		footPos.CalcGrounded();
 
 		Gravitate();
 
-		GameManager.instance.loggerTemp.text = $"(({moveDir} * {moveSpd}) + {powerDir}) * {Time.fixedDeltaTime} = {((Vector3)((moveDir * moveSpd) + powerDir) * Time.fixedDeltaTime).ToString()}";
+		//GameManager.instance.loggerTemp.text = $"(({moveDir} * {moveSpd}) + {powerDir}) * {Time.fixedDeltaTime} = {((Vector3)((moveDir * moveSpd) + powerDir) * Time.fixedDeltaTime).ToString()}";
 
 		if (dashing)
 			transform.position += (Vector3)(dashDir) * Time.fixedDeltaTime;
 		else
 			transform.position += (Vector3)((moveDir * moveSpd) + powerDir) * Time.fixedDeltaTime;
+
+		
 	}
 }

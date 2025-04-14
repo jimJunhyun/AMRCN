@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
+using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 
 public class HealthControl : BaseControlModule, IDamagable
 {
@@ -34,10 +36,41 @@ public class HealthControl : BaseControlModule, IDamagable
 		curSp = maxSp;
 	}
 
+	//무적관련은 민감한 부분이니 서버RPC에서만 부르기로. 클라이언트에서는 부를필요없음.
 	public void SetImmune(int frame) //새로고침 방식 || 연장 방식
+	{
+		if(!IsServer)
+			return;
+
+		EnableImmuneServerRpc(frame);
+	}
+
+
+	[ServerRpc]
+	void EnableImmuneServerRpc(int frame)
 	{
 		immune = true;
 		immuneFrame += frame;
+		EnableImmuneClientRpc();
+	}
+
+	[ClientRpc]
+	void EnableImmuneClientRpc()
+	{
+		immune = true;
+	}
+
+
+	void DisableImmune()
+	{
+		immune = false;
+		DisableImmuneClientRpc();
+	}
+
+	[ClientRpc]
+	void DisableImmuneClientRpc()
+	{
+		immune = false;
 	}
 
 	public void Heal(int amt, bool overHeal = false)
@@ -77,13 +110,16 @@ public class HealthControl : BaseControlModule, IDamagable
 
 	private void Update()
 	{
-		if(immune && immuneFrame > 0)
+		if (IsServer)
 		{
-			immuneFrame -= 1;
+			if(immune && immuneFrame > 0)
+			{
+				immuneFrame -= 1;
+			}
+			
+			if(immuneFrame <= 0)
+				DisableImmune();
 		}
-
-		if(immuneFrame < 0)
-			immune = false;
 	}
 
 }
